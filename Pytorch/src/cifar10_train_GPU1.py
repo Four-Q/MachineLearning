@@ -1,10 +1,31 @@
 import torchvision
-import cifar10_model
+# import cifar10_model
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torch import nn
 import time
+
+# 模型搭建
+class Cifar10Model(nn.Module):
+    def __init__(self):
+        super(Cifar10Model, self).__init__()
+        self.model = nn.Sequential(
+            nn.Conv2d(3, 32, 5, 1, 2), 
+            nn.MaxPool2d(2),
+            nn.Conv2d(32, 32, 5, 1, 2), 
+            nn.MaxPool2d(2),
+            nn.Conv2d(32, 64, 5, 1, 2),
+            nn.MaxPool2d(2),
+            nn.Flatten(),
+            nn.Linear(64*4*4, 64), 
+            nn.Linear(64, 10)
+        )
+
+    def forward(self, x):
+        output = self.model(x)
+        return output
+    
 
 # 相关训练参数
 EPOCH = 10
@@ -30,11 +51,15 @@ print(f'train_dataset size: {len(train_dataset)}')
 print(f'test_dataset size: {len(test_dataset)}')
 
 # 创建模型
-model = cifar10_model.Cifar10Model()
-
+model = Cifar10Model()
 # 选择损失函数
 # 分类问题：选择交叉熵损失函数
 loss_func = nn.CrossEntropyLoss()
+
+# 使用gpu
+if torch.cuda.is_available():
+    model = model.cuda()
+    loss_func = loss_func.cuda()
 
 # 选择优化器
 optim = torch.optim.SGD(model.parameters(), lr=learning_rate)
@@ -42,6 +67,7 @@ optim = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
 # 使用tensorboard进行可视化
 writer = SummaryWriter(log_dir='./Pytorch/logs/cifar10_logs')
+
 
 
 # 计时
@@ -57,6 +83,9 @@ for epoch in range(EPOCH):
     train_batch = 0
     for data in train_dataloader:
         imgs, targets = data
+        if torch.cuda.is_available():
+            imgs = imgs.cuda()
+            targets = targets.cuda()
         output = model(imgs)
         optim.zero_grad()   # 梯度归零
         loss = loss_func(output, targets)
@@ -85,6 +114,9 @@ for epoch in range(EPOCH):
         total_test_loss = 0
         for data in test_dataloader:
             imgs, targets = data
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                targets = targets.cuda()
             output = model(imgs)
             loss = loss_func(output, targets)
             accurates = (output.argmax(1) == targets).sum()
@@ -100,6 +132,5 @@ for epoch in range(EPOCH):
 
     # 保存模型数据
     torch.save(model, f'./Pytorch/model_data/CIFAR10_EPOCH{epoch}.pth')
-    break
 writer.close()
 

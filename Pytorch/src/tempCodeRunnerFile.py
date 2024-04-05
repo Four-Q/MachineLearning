@@ -7,11 +7,14 @@ from torch import nn
 import time
 
 # 相关训练参数
-EPOCH = 10
+EPOCH = 30
 learning_rate = 1e-2
 batch_size = 64
 # 计时用
 symbol = True
+
+# 设置训练device
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # 加载数据集
 train_dataset = torchvision.datasets.CIFAR10('./Pytorch/data/CIFAR10', train=True,  \
@@ -31,10 +34,12 @@ print(f'test_dataset size: {len(test_dataset)}')
 
 # 创建模型
 model = cifar10_model.Cifar10Model()
+model.to(device=device)
 
 # 选择损失函数
 # 分类问题：选择交叉熵损失函数
 loss_func = nn.CrossEntropyLoss()
+loss_func.to(device=device)
 
 # 选择优化器
 optim = torch.optim.SGD(model.parameters(), lr=learning_rate)
@@ -57,6 +62,9 @@ for epoch in range(EPOCH):
     train_batch = 0
     for data in train_dataloader:
         imgs, targets = data
+        imgs = imgs.to(device)
+        targets = targets.to(device)
+
         output = model(imgs)
         optim.zero_grad()   # 梯度归零
         loss = loss_func(output, targets)
@@ -85,6 +93,8 @@ for epoch in range(EPOCH):
         total_test_loss = 0
         for data in test_dataloader:
             imgs, targets = data
+            imgs = imgs.to(device)
+            targets = targets.to(device)
             output = model(imgs)
             loss = loss_func(output, targets)
             accurates = (output.argmax(1) == targets).sum()
@@ -100,6 +110,6 @@ for epoch in range(EPOCH):
 
     # 保存模型数据
     torch.save(model, f'./Pytorch/model_data/CIFAR10_EPOCH{epoch}.pth')
-    break
+
 writer.close()
 
