@@ -1,0 +1,2 @@
+# 忽略掉大的文件
+.\Pytorch\data\CIFAR10\cifar-10-python.tar.gz
